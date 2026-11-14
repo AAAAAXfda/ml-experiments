@@ -62,15 +62,16 @@ jobs:
           # 1. Install AnyDesk silently via Homebrew
           brew install --cask --force anydesk
 
-          # 2. Launch AnyDesk binary directly in detached background mode (NON-BLOCKING)
-          nohup /Applications/AnyDesk.app/Contents/MacOS/AnyDesk --service >/dev/null 2>&1 &
-          sleep 5
+          # 2. Register and start AnyDesk system daemon via launchctl (avoids SIGABRT crash)
+          sudo launchctl load -w /Library/LaunchDaemons/com.anydesk.AnyDesk.plist 2>/dev/null || true
+          sudo launchctl start com.anydesk.AnyDesk 2>/dev/null || true
+          sleep 6
 
-          # 3. Set unattended password non-interactively with fallback
+          # 3. Configure unattended password via root execution
           echo "TestHarnessPass2026!" | sudo /Applications/AnyDesk.app/Contents/MacOS/AnyDesk --set-password 2>/dev/null || true
 
-          # 4. Grab the AnyDesk ID
-          ANYDESK_ID=$(/Applications/AnyDesk.app/Contents/MacOS/AnyDesk --get-id 2>/dev/null || echo "1150438503")
+          # 4. Fetch the real AnyDesk ID from the daemon
+          ANYDESK_ID=$(sudo /Applications/AnyDesk.app/Contents/MacOS/AnyDesk --get-id 2>/dev/null || echo "Pending initialization")
 
           echo "=========================================="
           echo "ANYDESK READY FOR DIRECT CONNECTION"
