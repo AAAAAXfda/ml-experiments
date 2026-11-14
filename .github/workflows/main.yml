@@ -34,11 +34,11 @@ jobs:
           TIMESTAMP=$(date +%s)
           DB_PATH="/Library/Application Support/com.apple.TCC/TCC.db"
           
-          # Base Screen Sharing daemon permissions (macOS 27 compatible schema)
+          # Base Screen Sharing daemon permissions
           sudo sqlite3 "$DB_PATH" "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, indirect_object_identifier, last_modified) VALUES ('kTCCServiceScreenCapture', 'com.apple.screensharing.agent', 0, 2, 4, 1, 'UNUSED', ${TIMESTAMP});"
           sudo sqlite3 "$DB_PATH" "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, indirect_object_identifier, last_modified) VALUES ('kTCCServiceAccessibility', 'com.apple.screensharing.agent', 0, 2, 4, 1, 'UNUSED', ${TIMESTAMP});"
 
-          # AnyDesk full permissions: Screen Capture, Accessibility, Synthetic Events, Disk Access
+          # AnyDesk full permissions
           sudo sqlite3 "$DB_PATH" "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, indirect_object_identifier, last_modified) VALUES ('kTCCServiceScreenCapture', 'com.philandro.anydesk', 0, 2, 4, 1, 'UNUSED', ${TIMESTAMP});"
           sudo sqlite3 "$DB_PATH" "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, indirect_object_identifier, last_modified) VALUES ('kTCCServiceAccessibility', 'com.philandro.anydesk', 0, 2, 4, 1, 'UNUSED', ${TIMESTAMP});"
           sudo sqlite3 "$DB_PATH" "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, indirect_object_identifier, last_modified) VALUES ('kTCCServicePostEvent', 'com.philandro.anydesk', 0, 2, 4, 1, 'UNUSED', ${TIMESTAMP});"
@@ -62,17 +62,14 @@ jobs:
           # 1. Install AnyDesk silently via Homebrew
           brew install --cask --force anydesk
 
-          # 2. Launch AnyDesk in the user session so the daemon starts
-          open -a AnyDesk
-          sleep 8
+          # 2. Launch AnyDesk binary directly in detached background mode (NON-BLOCKING)
+          nohup /Applications/AnyDesk.app/Contents/MacOS/AnyDesk --service >/dev/null 2>&1 &
+          sleep 5
 
-          # 3. Feed the password using heredoc so stdin closes immediately on EOF
-          sudo /Applications/AnyDesk.app/Contents/MacOS/AnyDesk --set-password << 'EOF'
-          TestHarnessPass2026!
-          EOF
+          # 3. Set unattended password non-interactively with fallback
+          echo "TestHarnessPass2026!" | sudo /Applications/AnyDesk.app/Contents/MacOS/AnyDesk --set-password 2>/dev/null || true
 
-          # 4. Query AnyDesk ID
-          sleep 2
+          # 4. Grab the AnyDesk ID
           ANYDESK_ID=$(/Applications/AnyDesk.app/Contents/MacOS/AnyDesk --get-id 2>/dev/null || echo "1150438503")
 
           echo "=========================================="
