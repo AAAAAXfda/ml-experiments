@@ -3,7 +3,7 @@ on: workflow_dispatch
 
 jobs:
   ui-automation-harness:
-    runs-on: macos-latest
+    runs-on: xcode-27
     steps:
       - name: Verify build node hardware capabilities
         run: |
